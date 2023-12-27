@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import re
+import pyperclip
+import sys
+
+MIN_PROBA = 0.002
+WHITE = False
+FILE = "white.txt" if WHITE else "black.txt"
+SEPARATION = " | "
+
+lines = open(FILE).read().strip().split("\n")
+if len(sys.argv) == 1:
+    open(FILE, "w").write("\n".join(lines[1:]))
+elif len(sys.argv) >= 4 and len(sys.argv) & 1 == 0:
+    my_move = sys.argv[1]
+    answers = sys.argv[2::2]
+    occurences = list(map(int, sys.argv[3::2]))
+    assert all(
+        a == "." or x >= y for x, y, a in zip(occurences, occurences[1:], answers[1:])
+    )
+    proba, line = lines.pop(0).split(SEPARATION)
+    proba = float(proba)
+    total = sum(occurences)
+    for a, o in zip(answers, occurences):
+        new_proba = proba * o / total
+        if new_proba < MIN_PROBA:
+            break
+        move_num = int(re.findall(r"(\d+)\.", line)[-1]) + 1
+        new_line = (
+            f"{line} {move_num}. {my_move} {a}"
+            if WHITE
+            else f"{line} {my_move} {move_num}. {a}"
+        )
+        lines.append(f"{new_proba:.6f} | {new_line}")
+    lines.sort(key=lambda s: -float(s.split(SEPARATION)[0]))
+    open(FILE, "w").write("\n".join(lines))
+else:
+    raise Exception("invalid arguments")
+pyperclip.copy(open(FILE).readline().strip().split(SEPARATION)[1])
